@@ -1,0 +1,81 @@
+// ClassAssist AI - Prisma Schema (SQLite: no native enums, use String)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  subscriptionTier  String   @default("BASIC") // BASIC | PRO
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  users             User[]
+  students          Student[]
+  classes           Class[]
+  notifications     Notification[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   // ADMIN | TEACHER | MANAGER
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  classes   Class[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model Class {
+  id           String   @id @default(cuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  subject      String
+  dateTime     DateTime
+  status       String   @default("UPCOMING") // UPCOMING | COMPLETED | CANCELLED
+  meetingLink  String?
+  transcript   String?
+  accountId    String
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([studentId])
+  @@index([dateTime])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  type       String   // WHATSAPP | MEETING_INVITE | REMINDER
+  recipient  String
+  message   String
+  status     String   @default("PENDING")
+  accountId  String
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([accountId])
+}

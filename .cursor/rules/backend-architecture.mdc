@@ -1,0 +1,126 @@
+---
+alwaysApply: true
+---
+# Backend Architecture Rules
+
+## 1. Layering Rules (Strict)
+
+The backend must follow this structure:
+
+Routes (HTTP layer)
+    ↓
+Orchestrator (Intent → Command dispatcher)
+    ↓
+Services (Business logic only)
+    ↓
+Prisma / External services
+
+Rules:
+
+- Routes MUST NOT contain business logic.
+- Routes MUST NOT directly call Prisma (except auth/account loading if explicitly allowed).
+- Routes MUST only:
+  - Validate input (Zod)
+  - Read req.user
+  - Call orchestrator
+  - Map CommandResult → HTTP response
+
+- Orchestrator MUST:
+  - Decide which service method to call based on intent
+  - Normalize service errors into CommandError
+  - Return CommandResult
+  - NOT contain business logic
+
+- Services MUST:
+  - Contain all business logic
+  - Be independent of Express (no req, res)
+  - Throw typed errors (not send responses)
+  - Use Prisma
+  - Use notification/subscription services
+
+- Services MUST be unit-testable without Express.
+
+---
+
+## 2. Response Contract Stability
+
+API response shapes must remain backward compatible.
+
+CommandResult must preserve existing frontend contract:
+
+Success shapes:
+- { success: true, class }
+- { success: true, cancelled }
+- { success: true, student }
+- { success: true, remindersSent }
+
+Error shapes must preserve:
+- error (string code)
+- message (optional)
+- confirmationIssue (optional)
+- limit (optional)
+- count (optional)
+
+Status codes must not change without explicit approval.
+
+---
+
+## 3. Error Handling Rules
+
+Business logic MUST throw typed errors:
+- BASIC_LIMIT_REACHED
+- MULTIPLE_CLASSES
+- NO_MATCHING_CLASS
+- STUDENT_NAME_REQUIRED
+- REMINDER_NOT_ALLOWED
+- UNSUPPORTED_INTENT
+
+Only orchestrator maps errors to HTTP status codes.
+
+Routes MUST NOT inspect business conditions.
+
+---
+
+## 4. Prisma Usage Rules
+
+- Prisma access allowed ONLY inside:
+  - Services
+  - Orchestrator (account loading only)
+
+- No Prisma inside:
+  - Routes
+  - Controllers
+  - Middleware (except auth)
+
+---
+
+## 5. Intent Handling Rules
+
+- Intent extraction route (`/api/intent/extract`) must remain independent.
+- Orchestrator handles execution only.
+- Do not merge extraction + execution without explicit approval.
+
+---
+
+## 6. Adding New Intents
+
+When adding a new intent:
+
+1. Add service method in classService
+2. Add mapping in orchestrator
+3. Add error handling in mapCommandResultToHttp
+4. Update SupportedIntent type
+5. Maintain backward compatibility
+
+Never add intent logic directly in routes.
+
+---
+
+## 7. No Silent Contract Changes
+
+Any of the following requires explicit approval:
+- Changing response field names
+- Changing status codes
+- Changing error codes
+- Changing Prisma schema
+- Moving business logic back into routes

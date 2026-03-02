@@ -1,13 +1,21 @@
-import { isSupportedIntent, UNSUPPORTED_RESPONSE, type ExtractedIntent } from "../types/intent.js";
+// LocalLLMProvider.ts
 import type { AIProvider } from "./AIProvider.js";
+import type { ExtractedIntent } from "../types/intent.js";
 
-/**
- * Placeholder for future local LLM (Ollama, etc.).
- * For now returns unsupported so demo uses OpenAI.
- */
 export class LocalLLMProvider implements AIProvider {
-  async extractIntent(_text: string): Promise<ExtractedIntent> {
-    // TODO: Call local LLM endpoint when integrated
-    return UNSUPPORTED_RESPONSE;
+  async extractIntent(text: string): Promise<ExtractedIntent> {
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama3",
+        prompt: `Extract intent from this message and return JSON only:\n\n${text}`,
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+
+    return JSON.parse(data.response);
   }
 }

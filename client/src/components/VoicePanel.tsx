@@ -69,7 +69,12 @@ export default function VoicePanel() {
       const result = await intentApi.extract(transcript);
       setExtracted(result);
       if (result.intent === "unsupported") {
-        setError("I couldn't match that to a supported action. Try: schedule a class, cancel class, add student, send reminder.");
+        setError(result.message ?? "I couldn't match that to a supported action. Try: schedule a class, cancel class, add student, send reminder.");
+        setStep("transcript");
+        return;
+      }
+      if (result.requiresStudentName && !result.studentName?.trim()) {
+        setError("Please say who the class is for (e.g. \"with Ashutosh\" or \"for Rahul\").");
         setStep("transcript");
         return;
       }
@@ -95,16 +100,16 @@ export default function VoicePanel() {
     setExecError("");
   };
 
-  const handleExecutionDone = () => {
+  const handleExecutionDone = useCallback(() => {
     setStep("done");
     setExtracted(null);
     setTranscript("");
-  };
+  }, []);
 
-  const handleExecutionError = (msg: string, isUpgrade?: boolean) => {
+  const handleExecutionError = useCallback((msg: string, isUpgrade?: boolean) => {
     setExecError(msg);
     if (isUpgrade) setShowUpgrade(true);
-  };
+  }, []);
 
   const handleReset = () => {
     setStep("idle");

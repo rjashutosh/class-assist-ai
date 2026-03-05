@@ -1,0 +1,15 @@
+{"sessionId":"c075d4","location":"VoicePanel.tsx:handleExecute","message":"Execute button/handler invoked","data":{"step":"executing"},"hypothesisId":"D","timestamp":1772728464741}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run","data":{"runId":2,"intent":"add_student","transcriptLen":21},"hypothesisId":"A","timestamp":1772728464761}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:mount","message":"ExecutionPanel mounted","data":{"runId":3},"hypothesisId":"C","timestamp":1772728464763}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped - already started)","data":{"runId":3},"hypothesisId":"A","timestamp":1772728464764,"runId":"post-fix"}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:mount","message":"ExecutionPanel mounted","data":{"runId":1},"hypothesisId":"C","timestamp":1772728464759}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped - already started)","data":{"runId":3},"hypothesisId":"A","timestamp":1772728547454,"runId":"post-fix"}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped - already started)","data":{"runId":3},"hypothesisId":"A","timestamp":1772728547532,"runId":"post-fix"}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped - already started)","data":{"runId":3},"hypothesisId":"A","timestamp":1772728582262,"runId":"post-fix"}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped - already started)","data":{"runId":3},"hypothesisId":"A","timestamp":1772728583855,"runId":"post-fix"}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:mount","message":"ExecutionPanel mounted","data":{"runId":1},"hypothesisId":"C","timestamp":1772728839194}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped)","data":{"myRunId":2},"hypothesisId":"A","timestamp":1772728839203}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:mount","message":"ExecutionPanel mounted","data":{"runId":3},"hypothesisId":"C","timestamp":1772728839224}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped)","data":{"myRunId":4},"hypothesisId":"A","timestamp":1772728839226}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:mount","message":"ExecutionPanel mounted","data":{"runId":5},"hypothesisId":"C","timestamp":1772728850197}
+{"sessionId":"c075d4","location":"ExecutionPanel.tsx:effect","message":"effect run (skipped)","data":{"myRunId":6},"hypothesisId":"A","timestamp":1772728850200}

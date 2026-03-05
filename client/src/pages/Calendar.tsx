@@ -104,8 +104,9 @@ export default function Calendar() {
                     key={c.id}
                     onClick={() => setSelected(c)}
                     className={`text-left text-xs p-1.5 rounded border truncate ${getStatusColor(c.status)}`}
+                    title={`${c.subject} with ${c.student.name} at ${new Date(c.dateTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })}`}
                   >
-                    {c.subject} · {c.student.name}
+                    {c.subject} · {c.student.name} · {new Date(c.dateTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })}
                   </button>
                 ))}
             </div>

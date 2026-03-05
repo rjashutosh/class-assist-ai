@@ -17,8 +17,12 @@ router.post(
       const { transcript } = bodySchema.parse(req.body);
       const provider = getAIProvider();
       const result = await provider.extractIntent(transcript);
+      if (result.confidence != null && result.confidence < 0.5) {
+        res.json({ intent: "unsupported", message: result.message ?? "Sorry, I could not understand the request." });
+        return;
+      }
       if (!isSupportedIntent(result.intent as string)) {
-        res.json({ intent: "unsupported" });
+        res.json({ intent: "unsupported", message: result.message ?? "Sorry, I could not understand the request." });
         return;
       }
       res.json(result);

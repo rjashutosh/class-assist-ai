@@ -23,7 +23,16 @@ export interface ExtractedIntent {
   newDate?: string;
   newTime?: string;
   message?: string;
-  [key: string]: string | undefined;
+  /** 0–1; if < 0.5 treat as unsupported */
+  confidence?: number;
+  /** True when schedule_class intent but no student name detected; frontend should ask for clarification */
+  requiresStudentName?: boolean;
+  /** Human-friendly confirmation summary for modal and TTS (e.g. "Schedule a Math class with Ashutosh on Sunday at 5 PM.") */
+  confirmationSummary?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
-export const UNSUPPORTED_RESPONSE: ExtractedIntent = { intent: "unsupported" };
+export const UNSUPPORTED_RESPONSE: ExtractedIntent = {
+  intent: "unsupported",
+  message: "Sorry, I could not understand the request.",
+};

@@ -12,6 +12,7 @@ const INTENT_LABELS: Record<string, string> = {
 };
 
 function getSummary(intent: ExtractedIntent): string {
+  if (intent.confirmationSummary) return intent.confirmationSummary;
   switch (intent.intent) {
     case "schedule_class":
       return `schedule a class for ${intent.studentName ?? "student"} in ${intent.subject ?? "subject"} on ${intent.date ?? "date"} at ${intent.time ?? "time"}`;

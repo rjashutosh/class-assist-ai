@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma.js";
+import { generateMeetingInviteText } from "../utils/meetingMessage.js";
 import { canCreateClass, canSendReminder } from "./subscriptionService.js";
 import { createMockNotification } from "./notificationService.js";
 import { log as auditLog, AUDIT_ACTIONS } from "./auditService.js";
@@ -69,11 +70,12 @@ export async function scheduleClass(
   });
 
   const student = cls.student;
+  const inviteMessage = generateMeetingInviteText(student.name, cls.dateTime);
   await createMockNotification(
     ctx.accountId,
     "MEETING_INVITE",
     student.email ?? student.phone ?? student.name,
-    `Class scheduled: ${body.subject} on ${dateTime.toISOString()}. Link: ${meetingLink}`
+    `${inviteMessage} Link: ${meetingLink}`
   );
   await auditLog({ accountId: ctx.accountId, actorId: ctx.userId, action: AUDIT_ACTIONS.CLASS_CREATED, metadata: { classId: cls.id } });
   await incrementUsage(ctx.accountId, "CLASS_CREATED");

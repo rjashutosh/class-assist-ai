@@ -45,6 +45,12 @@ export interface ExtractedIntent {
   message?: string;
   email?: string;
   phone?: string;
+  /** 0–1; if < 0.5 backend treats as unsupported */
+  confidence?: number;
+  /** True when schedule_class but no student name; frontend should ask for clarification */
+  requiresStudentName?: boolean;
+  /** Human-friendly summary for confirmation modal and TTS */
+  confirmationSummary?: string;
 }
 
 export interface Notification {

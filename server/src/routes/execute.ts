@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authMiddleware, requireRoles } from "../middleware/auth.js";
 import { executeCommand, mapCommandResultToHttp } from "../orchestration/commandOrchestrator.js";
 import type { ExecuteCommandBody } from "../orchestration/types.js";
+import { generateMeetingInviteText } from "../utils/meetingMessage.js";
 
 const router = Router();
 
@@ -37,6 +38,15 @@ router.post(
         body
       );
       const { status, json } = mapCommandResultToHttp(result);
+      if (status === 200 && json && typeof json === "object" && "class" in json && json.class) {
+        const cls = json.class as { dateTime: string; student: { name: string } };
+        (json as Record<string, unknown>).student = cls.student.name;
+        (json as Record<string, unknown>).scheduledAt = cls.dateTime;
+        (json as Record<string, unknown>).message = generateMeetingInviteText(
+          cls.student.name,
+          new Date(cls.dateTime)
+        );
+      }
       res.status(status).json(json);
     } catch (e) {
       if (e instanceof z.ZodError) {

@@ -6,25 +6,41 @@ import {
   type ExtractedIntent,
 } from "../types/intent.js";
 import type { AIProvider } from "./AIProvider.js";
+import { generateConfirmationSummary } from "../utils/meetingMessage.js";
 
-const SYSTEM_PROMPT = `You are an intent extraction engine.
+const SYSTEM_PROMPT = `You are a natural-language intent extraction engine for a class scheduling assistant.
+Understand flexible, conversational commands like a real assistant.
+
 Supported intents ONLY:
-- schedule_class
-- cancel_class
-- reschedule_class
-- add_student
-- send_reminder
+- schedule_class (book/create/set up/add a class)
+- cancel_class (cancel/remove/delete a class)
+- reschedule_class (move/reschedule/change/push a class to a new time)
+- send_reminder (send reminder/notify student about a class)
+- add_student (add/create/register a new student)
 
-Rules:
-1. Return ONLY valid JSON. No explanation text.
-2. If the user's message does not match any supported intent, return: {"intent":"unsupported"}
-3. For schedule_class: extract studentName, subject, date, time (all strings).
-4. For cancel_class: extract studentName or subject, date (to identify the class).
-5. For reschedule_class: extract studentName or subject, date, time (current), newDate, newTime.
-6. For add_student: extract studentName, and optionally email, phone.
-7. For send_reminder: extract studentName or subject, date, message (optional).
-8. Use ISO date format (YYYY-MM-DD) for date fields when possible. Time as HH:MM or "10am" style.
-9. intent MUST be exactly one of: schedule_class, cancel_class, reschedule_class, add_student, send_reminder, or unsupported.`;
+Examples of commands you must understand:
+
+Scheduling: "Schedule a class with Ashutosh on Sunday at 5 pm", "Book a physics class for grade 8 tomorrow evening", "Create a math class with Rahul next Monday 6 pm", "Add a class with Priya at 4 pm today", "Set up a chemistry class tomorrow morning"
+
+Rescheduling: "Move my Sunday class to Monday 6 pm", "Reschedule Ashutosh's class to tomorrow at 4", "Change my 5 pm class to 7 pm", "Push the class to next Friday"
+
+Cancellation: "Cancel my class with Ashutosh", "Remove the Sunday class", "Delete the class tomorrow"
+
+Reminders: "Send reminder to Ashutosh", "Notify student about tomorrow's class", "Send reminder for today's class"
+
+Student: "Add new student Rahul", "Create student Ashutosh", "Register a student named Priya"
+
+Output rules:
+1. Return ONLY valid JSON. No markdown, no explanation.
+2. intent: exactly one of schedule_class, cancel_class, reschedule_class, send_reminder, add_student, or unsupported.
+3. For schedule_class: extract studentName, subject (e.g. Math, physics), date (e.g. Sunday, tomorrow), time (e.g. 5 pm, evening). If no student name is given, set requiresStudentName: true.
+4. For cancel_class: extract studentName and/or date/subject to identify the class.
+5. For reschedule_class: extract studentName or context, date/time (current if mentioned), newDate, newTime.
+6. For send_reminder: extract studentName, optionally date.
+7. For add_student: extract studentName (required), optionally email, phone.
+8. Use natural language for date/time (e.g. "Sunday", "tomorrow", "5 pm", "evening") — do not convert to ISO.
+9. Add confidence: a number 0–1 indicating how confident you are this is the correct intent (e.g. 0.92).
+10. If the message does not match any intent, return: {"intent":"unsupported","message":"Sorry, I could not understand the request.","confidence":0}`;
 
 export class OpenAIProvider implements AIProvider {
   private client: OpenAI;
@@ -51,20 +67,38 @@ export class OpenAIProvider implements AIProvider {
       if (!json || typeof json !== "object") return UNSUPPORTED_RESPONSE;
 
       const intent = (json.intent ?? "unsupported") as string;
-      if (!isSupportedIntent(intent)) return UNSUPPORTED_RESPONSE;
+      const confidence = typeof json.confidence === "number" ? json.confidence : 1;
 
-      return {
+      if (confidence < 0.5) {
+        return {
+          intent: "unsupported",
+          message: (json.message as string) ?? "Sorry, I could not understand the request.",
+        };
+      }
+
+      if (!isSupportedIntent(intent)) {
+        return {
+          intent: "unsupported",
+          message: (json.message as string) ?? "Sorry, I could not understand the request.",
+        };
+      }
+
+      const extracted: ExtractedIntent = {
         intent,
-        studentName: json.studentName,
-        subject: json.subject,
-        date: json.date,
-        time: json.time,
-        newDate: json.newDate,
-        newTime: json.newTime,
-        message: json.message,
-        email: json.email,
-        phone: json.phone,
-      } as ExtractedIntent;
+        studentName: json.studentName as string | undefined,
+        subject: json.subject as string | undefined,
+        date: json.date as string | undefined,
+        time: json.time as string | undefined,
+        newDate: json.newDate as string | undefined,
+        newTime: json.newTime as string | undefined,
+        message: json.message as string | undefined,
+        email: json.email as string | undefined,
+        phone: json.phone as string | undefined,
+        confidence,
+        requiresStudentName: json.requiresStudentName === true,
+      };
+      extracted.confirmationSummary = generateConfirmationSummary(extracted);
+      return extracted;
     } catch {
       return UNSUPPORTED_RESPONSE;
     }

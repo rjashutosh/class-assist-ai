@@ -23,36 +23,42 @@ export default function ExecutionPanel({ extracted, transcript, onDone, onError 
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const doneRef = useRef(false);
+  const effectRunIdRef = useRef(0);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    const myRunId = ++effectRunIdRef.current;
+    if (myRunId !== 1) {
+      return () => {};
+    }
+    cancelledRef.current = false;
 
     const run = async () => {
       try {
         setCurrentStep(0);
         await new Promise((r) => setTimeout(r, 600));
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         setCurrentStep(1);
         const body = { ...extracted, transcript };
         const res = await executeApi.execute(body);
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         if (!res.success) {
           setError("Action could not be completed.");
           return;
         }
         setCurrentStep(2);
         await new Promise((r) => setTimeout(r, 500));
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         setCurrentStep(3);
         await new Promise((r) => setTimeout(r, 500));
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         setCurrentStep(4);
         doneRef.current = true;
         speak("Your request has been successfully completed.", () => {
-          if (!cancelled) onDone();
+          if (!cancelledRef.current) onDone();
         });
       } catch (err: any) {
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         const msg = err.message ?? "Execution failed";
         const isUpgrade =
           msg.includes("BASIC_LIMIT") ||
@@ -63,11 +69,15 @@ export default function ExecutionPanel({ extracted, transcript, onDone, onError 
       }
     };
     run();
+    return () => {};
+  }, [extracted, transcript, onDone, onError]);
+
+  useEffect(() => {
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       cancelSpeech();
     };
-  }, [extracted, transcript, onDone, onError]);
+  }, []);
 
   if (error) {
     return (
@@ -95,10 +105,10 @@ export default function ExecutionPanel({ extracted, transcript, onDone, onError 
     >
       <h3 className="text-neon-cyan font-bold text-xl mb-6">Executing</h3>
       <div className="space-y-4" role="status" aria-live="polite">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {STEPS.slice(0, currentStep + 1).map((label, i) => (
             <motion.div
-              key={label}
+              key={`${label}-${i}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               className={`flex items-center gap-3 text-base md:text-lg ${

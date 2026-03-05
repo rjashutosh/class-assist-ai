@@ -1,5 +1,6 @@
 /**
  * Voice pipeline OpenAI provider. Wraps existing AI extractIntent for consistency.
+ * Returns full ExtractedIntent including confidence and requiresStudentName.
  */
 
 import { getAIProvider } from "../../ai/index.js";
@@ -14,12 +15,14 @@ export interface VoiceIntentResult {
   newDate?: string;
   newTime?: string;
   message?: string;
+  confidence?: number;
+  requiresStudentName?: boolean;
 }
 
 export class VoiceOpenAIProvider {
   async extractIntent(text: string): Promise<VoiceIntentResult> {
     const provider = getAIProvider();
-    const result = (await provider.extractIntent(text)) as ExtractedIntent;
+    const result = await provider.extractIntent(text);
     return {
       intent: result.intent,
       studentName: result.studentName,
@@ -29,6 +32,8 @@ export class VoiceOpenAIProvider {
       newDate: result.newDate,
       newTime: result.newTime,
       message: result.message,
+      confidence: result.confidence,
+      requiresStudentName: result.requiresStudentName,
     };
   }
 }

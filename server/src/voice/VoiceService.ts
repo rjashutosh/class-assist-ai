@@ -5,7 +5,7 @@
 import { executeCommand } from "../orchestration/commandOrchestrator.js";
 import { log as auditLog, AUDIT_ACTIONS } from "../services/auditService.js";
 import { incrementUsage } from "../services/usageLogService.js";
-import { IntentResolver, resolveToCommandBody } from "./IntentResolver.js";
+import { resolveToCommandBody } from "./IntentResolver.js";
 import { OllamaProvider } from "./providers/OllamaProvider.js";
 import { VoiceOpenAIProvider } from "./providers/OpenAIProvider.js";
 

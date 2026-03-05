@@ -47,10 +47,11 @@ export class VoiceService {
       await auditLog({ accountId, actorId: userId, action: AUDIT_ACTIONS.VOICE_COMMAND, metadata: { intent: body.intent } });
       return { success: true, intent: body.intent, data: result.data };
     }
+    const err = result.error as { code: string; message?: string };
     return {
       success: false,
       intent: body.intent,
-      error: result.error.code,
+      error: err.message ?? err.code,
     };
   }
 }

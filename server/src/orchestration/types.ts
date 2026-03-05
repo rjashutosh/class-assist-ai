@@ -36,7 +36,8 @@ export type CommandError =
   | { code: "NO_MATCHING_CLASS"; confirmationIssue: true }
   | { code: "MULTIPLE_CLASSES"; confirmationIssue: true }
   | { code: "REMINDER_NOT_ALLOWED" }
-  | { code: "UNSUPPORTED_INTENT" };
+  | { code: "UNSUPPORTED_INTENT" }
+  | { code: "CREATE_FAILED"; message?: string };
 
 /** Success payloads per intent. API response shape preserved. */
 export type CommandSuccessData =

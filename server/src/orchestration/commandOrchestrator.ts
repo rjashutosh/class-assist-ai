@@ -57,6 +57,14 @@ export async function executeCommand(
     if (isCommandError(e)) {
       return { success: false, error: e };
     }
+    // Prisma P2021 = referenced record does not exist (e.g. student/account)
+    const prismaCode = (e as { code?: string })?.code;
+    if (prismaCode === "P2021") {
+      return {
+        success: false,
+        error: { code: "CREATE_FAILED", message: "Student or account not found. Try adding the student first." },
+      };
+    }
     throw e;
   }
 }
@@ -118,6 +126,14 @@ export function mapCommandResultToHttp(result: CommandResult): MapResult {
       };
     case "UNSUPPORTED_INTENT":
       return { status: 400, json: { error: "Unsupported intent" } };
+    case "CREATE_FAILED":
+      return {
+        status: 400,
+        json: {
+          error: "CREATE_FAILED",
+          message: (error as { message?: string }).message ?? "Could not create class. Try adding the student first.",
+        },
+      };
     default: {
       const _exhaustive: never = error;
       return _exhaustive;

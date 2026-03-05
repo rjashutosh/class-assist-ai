@@ -37,32 +37,38 @@ export async function scheduleClass(
   if (!check.allowed) {
     throw { code: "BASIC_LIMIT_REACHED" as const, limit: check.limit, count: check.count };
   }
-  let student = ctx.account.students.find(
-    (s) => s.name.toLowerCase() === (body.studentName ?? "").toLowerCase()
-  );
-  if (!student && body.studentName) {
-    student = await prisma.student.create({
-      data: { accountId: ctx.accountId, name: body.studentName.trim() },
-    });
-  }
-  if (!student) {
-    throw { code: "STUDENT_NAME_REQUIRED" as const, confirmationIssue: true as const };
-  }
   const dateTime = parseDateTime(body.date, body.time) ?? new Date();
   const meetingLink = `https://meet.demo/class-${Date.now()}`;
-  const cls = await prisma.class.create({
-    data: {
-      accountId: ctx.accountId,
-      studentId: student.id,
-      subject: body.subject ?? "General",
-      dateTime,
-      status: "UPCOMING",
-      meetingLink,
-      transcript: body.transcript ?? null,
-      createdBy: ctx.userId,
-    },
-    include: { student: true },
+
+  // Create student (if needed) and class in one transaction so the new student is visible (avoids P2021 on SQLite)
+  const cls = await prisma.$transaction(async (tx) => {
+    let student = ctx.account.students.find(
+      (s) => s.name.toLowerCase() === (body.studentName ?? "").toLowerCase()
+    );
+    if (!student && body.studentName) {
+      student = await tx.student.create({
+        data: { accountId: ctx.accountId, name: body.studentName.trim() },
+      });
+    }
+    if (!student) {
+      throw { code: "STUDENT_NAME_REQUIRED" as const, confirmationIssue: true as const };
+    }
+    return tx.class.create({
+      data: {
+        accountId: ctx.accountId,
+        studentId: student.id,
+        subject: body.subject ?? "General",
+        dateTime,
+        status: "UPCOMING",
+        meetingLink,
+        transcript: body.transcript ?? null,
+        createdBy: ctx.userId,
+      },
+      include: { student: true },
+    });
   });
+
+  const student = cls.student;
   await createMockNotification(
     ctx.accountId,
     "MEETING_INVITE",

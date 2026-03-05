@@ -16,11 +16,21 @@ interface UsageRow {
   classesThisMonth: number;
 }
 
+interface AnalyticsData {
+  totalAccounts: number;
+  activeSubscriptions: number;
+  monthlyRevenue: number;
+  voiceCommandsUsage: number;
+  classesCreatedThisMonth: number;
+  classesPerAccount: { accountId: string; count: number }[];
+}
+
 export default function Admin() {
   const [accounts, setAccounts] = useState<AccountWithDetails[]>([]);
   const [usage, setUsage] = useState<UsageRow[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"accounts" | "create">("accounts");
+  const [tab, setTab] = useState<"analytics" | "accounts" | "create">("analytics");
   const [newTier, setNewTier] = useState<"BASIC" | "PRO">("BASIC");
   const [newUser, setNewUser] = useState({
     email: "",
@@ -33,10 +43,11 @@ export default function Admin() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    Promise.all([adminApi.accounts(), adminApi.usage()])
-      .then(([a, u]) => {
+    Promise.all([adminApi.accounts(), adminApi.usage(), adminApi.analytics().catch(() => null)])
+      .then(([a, u, ax]) => {
         setAccounts(a);
         setUsage(u);
+        setAnalytics(ax ?? null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -91,6 +102,12 @@ export default function Admin() {
 
       <div className="flex gap-2 mb-6">
         <button
+          onClick={() => setTab("analytics")}
+          className={`px-4 py-2 rounded-xl ${tab === "analytics" ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/50" : "border border-white/20 text-slate-400"}`}
+        >
+          Analytics
+        </button>
+        <button
           onClick={() => setTab("accounts")}
           className={`px-4 py-2 rounded-xl ${tab === "accounts" ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/50" : "border border-white/20 text-slate-400"}`}
         >
@@ -108,6 +125,66 @@ export default function Admin() {
         <div className="mb-4 p-3 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan text-sm">
           {message}
         </div>
+      )}
+
+      {tab === "analytics" && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-6"
+        >
+          {loading || !analytics ? (
+            <div className="p-8 text-center text-slate-500">Loading analytics...</div>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <div className="glass rounded-xl p-5 border border-white/10">
+                  <p className="text-slate-400 text-sm font-medium">Total Accounts</p>
+                  <p className="text-2xl font-bold text-white mt-1">{analytics.totalAccounts}</p>
+                </div>
+                <div className="glass rounded-xl p-5 border border-white/10">
+                  <p className="text-slate-400 text-sm font-medium">Active Subscriptions</p>
+                  <p className="text-2xl font-bold text-neon-cyan mt-1">{analytics.activeSubscriptions}</p>
+                </div>
+                <div className="glass rounded-xl p-5 border border-white/10">
+                  <p className="text-slate-400 text-sm font-medium">Monthly Revenue</p>
+                  <p className="text-2xl font-bold text-neon-green mt-1">${analytics.monthlyRevenue}</p>
+                </div>
+                <div className="glass rounded-xl p-5 border border-white/10">
+                  <p className="text-slate-400 text-sm font-medium">Voice Commands (month)</p>
+                  <p className="text-2xl font-bold text-white mt-1">{analytics.voiceCommandsUsage}</p>
+                </div>
+                <div className="glass rounded-xl p-5 border border-white/10">
+                  <p className="text-slate-400 text-sm font-medium">Classes This Month</p>
+                  <p className="text-2xl font-bold text-white mt-1">{analytics.classesCreatedThisMonth}</p>
+                </div>
+              </div>
+              {analytics.classesPerAccount.length > 0 && (
+                <div className="glass rounded-xl border border-white/10 overflow-hidden">
+                  <h2 className="p-4 text-lg font-medium text-white border-b border-white/10">Classes per account</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="p-4 text-slate-400 font-medium">Account ID</th>
+                          <th className="p-4 text-slate-400 font-medium">Classes (this month)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {analytics.classesPerAccount.map((row) => (
+                          <tr key={row.accountId} className="border-b border-white/5 hover:bg-white/5">
+                            <td className="p-4 text-white font-mono text-sm">{row.accountId.slice(0, 12)}...</td>
+                            <td className="p-4 text-neon-cyan">{row.count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </motion.div>
       )}
 
       {tab === "accounts" && (

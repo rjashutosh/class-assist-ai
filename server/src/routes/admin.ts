@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { authMiddleware, requireRoles } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
+import { log as auditLog, AUDIT_ACTIONS } from "../services/auditService.js";
 
 const router = Router();
 
@@ -23,10 +24,12 @@ router.use(requireRoles("ADMIN"));
 
 router.post("/accounts", async (req, res) => {
   try {
+    const user = (req as { user: { id: string } }).user;
     const body = createAccountSchema.parse(req.body);
     const account = await prisma.account.create({
       data: { subscriptionTier: body.subscriptionTier as "BASIC" | "PRO" },
     });
+    await auditLog({ accountId: account.id, actorId: user.id, action: AUDIT_ACTIONS.ACCOUNT_CREATED, metadata: { accountId: account.id } });
     res.status(201).json(account);
   } catch (e) {
     if (e instanceof z.ZodError) {
@@ -51,6 +54,7 @@ router.post("/users", async (req, res) => {
       return;
     }
     const hashed = await bcrypt.hash(body.password, 10);
+    const adminUser = (req as { user: { id: string } }).user;
     const user = await prisma.user.create({
       data: {
         email: body.email,
@@ -61,6 +65,7 @@ router.post("/users", async (req, res) => {
       },
       select: { id: true, email: true, name: true, role: true, accountId: true },
     });
+    await auditLog({ accountId: body.accountId, actorId: adminUser.id, action: AUDIT_ACTIONS.USER_CREATED, metadata: { userId: user.id } });
     res.status(201).json(user);
   } catch (e) {
     if (e instanceof z.ZodError) {
@@ -104,6 +109,45 @@ router.get("/usage", async (_req, res) => {
       classesThisMonth: byAccount[a.id] ?? 0,
     }))
   );
+});
+
+router.get("/analytics", async (_req, res) => {
+  try {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const totalAccounts = await prisma.account.count();
+    const activeSubscriptions = await prisma.subscription.count({
+      where: { status: "ACTIVE" },
+    });
+    const accountsWithTier = await prisma.account.findMany({
+      select: { id: true, subscriptionTier: true },
+    });
+    const proCount = accountsWithTier.filter((a) => a.subscriptionTier === "PRO").length;
+    const entCount = await prisma.subscription.count({ where: { plan: "ENTERPRISE", status: "ACTIVE" } });
+    const monthlyRevenue = proCount * 29 + entCount * 99;
+    const classesThisMonth = await prisma.class.count({
+      where: { createdAt: { gte: monthStart }, status: { not: "CANCELLED" } },
+    });
+    const voiceCommandsUsage = await prisma.auditLog.count({
+      where: { action: "VOICE_COMMAND", createdAt: { gte: monthStart } },
+    });
+    const classesByAccount = await prisma.class.groupBy({
+      by: ["accountId"],
+      where: { createdAt: { gte: monthStart } },
+      _count: true,
+    });
+    res.json({
+      totalAccounts,
+      activeSubscriptions: activeSubscriptions || totalAccounts,
+      monthlyRevenue,
+      voiceCommandsUsage,
+      classesCreatedThisMonth: classesThisMonth,
+      classesPerAccount: classesByAccount.map((c) => ({ accountId: c.accountId, count: c._count })),
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Analytics failed" });
+  }
 });
 
 export default router;

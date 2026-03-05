@@ -42,6 +42,14 @@ export const intentApi = {
     }),
 };
 
+export const voiceApi = {
+  process: (transcript: string) =>
+    api<{ success: boolean; intent?: string; data?: unknown }>("/voice/process", {
+      method: "POST",
+      body: JSON.stringify({ transcript }),
+    }),
+};
+
 export const executeApi = {
   execute: (body: Record<string, unknown>) =>
     api<{ success: boolean; class?: any; student?: any; cancelled?: string; remindersSent?: number }>("/execute", {
@@ -79,6 +87,15 @@ export const adminApi = {
     api<any>("/admin/users", { method: "POST", body: JSON.stringify(body) }),
   accounts: () => api<any[]>("/admin/accounts"),
   usage: () => api<any[]>("/admin/usage"),
+  analytics: () =>
+    api<{
+      totalAccounts: number;
+      activeSubscriptions: number;
+      monthlyRevenue: number;
+      voiceCommandsUsage: number;
+      classesCreatedThisMonth: number;
+      classesPerAccount: { accountId: string; count: number }[];
+    }>("/admin/analytics"),
 };
 
 export const notificationsApi = {

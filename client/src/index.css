@@ -2,10 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+.dark {
   --neon-cyan: #00f5ff;
   --neon-purple: #bf00ff;
   --bg-dark: #0a0a0f;
+  --bg-main: #0a0a0f;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: rgba(255, 255, 255, 0.1);
+}
+
+.light {
+  --neon-cyan: #0891b2;
+  --neon-purple: #7c3aed;
+  --bg-dark: #f1f5f9;
+  --bg-main: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border: rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -15,9 +30,14 @@
 body {
   margin: 0;
   background: var(--bg-dark);
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-family: "Inter", system-ui, sans-serif;
   min-height: 100vh;
+}
+
+/* Senior-friendly: larger base for light theme */
+.light body {
+  font-size: 18px;
 }
 
 #root {

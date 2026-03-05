@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma.js";
-import { canCreateClass, canSendReminder } from "./subscription.js";
+import { canCreateClass, canSendReminder } from "./subscriptionService.js";
 import { createMockNotification } from "./notificationService.js";
+import { log as auditLog, AUDIT_ACTIONS } from "./auditService.js";
+import { incrementUsage } from "./usageLogService.js";
 import type { CommandError, CommandSuccessData, ExecuteContext } from "../orchestration/types.js";
 import type { ExecuteCommandBody } from "../orchestration/types.js";
 import type { ClassWithStudent } from "../orchestration/types.js";
@@ -67,6 +69,8 @@ export async function scheduleClass(
     student.email ?? student.phone ?? student.name,
     `Class scheduled: ${body.subject} on ${dateTime.toISOString()}. Link: ${meetingLink}`
   );
+  await auditLog({ accountId: ctx.accountId, actorId: ctx.userId, action: AUDIT_ACTIONS.CLASS_CREATED, metadata: { classId: cls.id } });
+  await incrementUsage(ctx.accountId, "CLASS_CREATED");
   return { class: cls };
 }
 
@@ -102,6 +106,7 @@ export async function cancelClass(
     toCancel.student.email ?? toCancel.student.phone ?? toCancel.student.name,
     `Class cancelled: ${toCancel.subject} on ${toCancel.dateTime.toISOString()}`
   );
+  await auditLog({ accountId: ctx.accountId, actorId: ctx.userId, action: AUDIT_ACTIONS.CLASS_CANCELLED, metadata: { classId: toCancel.id } });
   return { cancelled: toCancel.id };
 }
 
@@ -139,6 +144,7 @@ export async function rescheduleClass(
     updated.student.email ?? updated.student.phone ?? updated.student.name,
     `Class rescheduled to ${newDateTime.toISOString()}. Link: ${updated.meetingLink}`
   );
+  await auditLog({ accountId: ctx.accountId, actorId: ctx.userId, action: AUDIT_ACTIONS.CLASS_RESCHEDULED, metadata: { classId: updated.id } });
   return { class: updated };
 }
 
@@ -157,6 +163,7 @@ export async function addStudent(
       phone: body.phone ?? undefined,
     },
   });
+  await auditLog({ accountId: ctx.accountId, actorId: ctx.userId, action: AUDIT_ACTIONS.STUDENT_ADDED, metadata: { studentId: student.id } });
   return { student };
 }
 
@@ -164,7 +171,8 @@ export async function sendReminders(
   ctx: ExecuteContext,
   body: ExecuteCommandBody
 ): Promise<{ remindersSent: number }> {
-  if (!canSendReminder(ctx.account.subscriptionTier)) {
+  const allowed = await canSendReminder(ctx.accountId);
+  if (!allowed) {
     throw { code: "REMINDER_NOT_ALLOWED" as const };
   }
   const dateFilter = buildDateFilter(body.date);
@@ -189,6 +197,7 @@ export async function sendReminders(
       body.message ?? `Reminder: ${c.subject} on ${c.dateTime.toISOString()}`
     );
   }
+  await auditLog({ accountId: ctx.accountId, actorId: ctx.userId, action: AUDIT_ACTIONS.REMINDER_SENT, metadata: { count: classes.length } });
   return { remindersSent: classes.length };
 }
 

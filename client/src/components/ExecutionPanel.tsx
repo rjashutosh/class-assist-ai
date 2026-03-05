@@ -74,12 +74,12 @@ export default function ExecutionPanel({ extracted, transcript, onDone, onError 
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="glass rounded-2xl p-6 w-full max-w-md border border-red-500/30"
+        className="glass rounded-2xl p-8 w-full max-w-lg border-2 border-red-500/50 bg-slate-800/50 dark:bg-dark-800"
       >
-        <p className="text-red-400 mb-4">{error}</p>
+        <p className="text-red-500 dark:text-red-400 text-lg font-medium mb-6" role="alert">{error}</p>
         <button
           onClick={() => onDone()}
-          className="px-4 py-2 rounded-xl border border-white/20 text-slate-300 hover:bg-white/5"
+          className="px-6 py-3 rounded-xl border-2 border-slate-400 dark:border-white/20 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/5 text-lg font-medium"
         >
           Back
         </button>
@@ -91,21 +91,21 @@ export default function ExecutionPanel({ extracted, transcript, onDone, onError 
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="glass rounded-2xl p-6 w-full max-w-md border border-neon-cyan/20"
+      className="glass rounded-2xl p-8 w-full max-w-lg border-2 border-neon-cyan/30 dark:border-neon-cyan/30 bg-slate-800/50 dark:bg-dark-800"
     >
-      <h3 className="text-neon-cyan font-medium mb-4">Executing</h3>
-      <div className="space-y-3">
+      <h3 className="text-neon-cyan font-bold text-xl mb-6">Executing</h3>
+      <div className="space-y-4" role="status" aria-live="polite">
         <AnimatePresence mode="wait">
           {STEPS.slice(0, currentStep + 1).map((label, i) => (
             <motion.div
               key={label}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`flex items-center gap-2 text-sm ${
-                i < currentStep ? "text-slate-500" : i === currentStep ? "text-neon-cyan" : "text-slate-600"
+              className={`flex items-center gap-3 text-base md:text-lg ${
+                i < currentStep ? "text-slate-500 dark:text-slate-500" : i === currentStep ? "text-neon-cyan font-semibold" : "text-slate-600 dark:text-slate-600"
               }`}
             >
-              <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs">
+              <span className="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center text-sm font-bold shrink-0">
                 {i < currentStep ? "✓" : i + 1}
               </span>
               {label}

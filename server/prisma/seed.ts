@@ -62,6 +62,16 @@ async function main() {
     },
   });
 
+  await prisma.subscription.upsert({
+    where: { accountId: account.id },
+    update: { plan: "PRO", status: "ACTIVE" },
+    create: {
+      accountId: account.id,
+      plan: "PRO",
+      status: "ACTIVE",
+    },
+  });
+
   console.log("Seed done:", { admin: admin.email, teacher: teacher.email, account: account.id });
 }
 

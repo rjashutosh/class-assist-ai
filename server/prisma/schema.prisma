@@ -1,4 +1,4 @@
-// ClassAssist AI - Prisma Schema (SQLite: no native enums, use String)
+// ClassAssist Pro - Multi-tenant SaaS (SQLite)
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,14 +9,19 @@ datasource db {
 }
 
 model Account {
-  id                String   @id @default(cuid())
-  subscriptionTier  String   @default("BASIC") // BASIC | PRO
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                String        @id @default(cuid())
+  subscriptionTier  String        @default("BASIC") // Legacy; prefer Subscription.plan
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
   users             User[]
   students          Student[]
   classes           Class[]
   notifications     Notification[]
+  subscriptions     Subscription[]
+  usageLogs         UsageLog[]
+  auditLogs         AuditLog[]
+
+  @@index([id])
 }
 
 model User {
@@ -78,4 +83,48 @@ model Notification {
   createdAt  DateTime @default(now())
 
   @@index([accountId])
+}
+
+model Subscription {
+  id         String   @id @default(cuid())
+  accountId  String   @unique
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  plan       String   // BASIC | PRO | ENTERPRISE
+  status     String   @default("ACTIVE") // ACTIVE | CANCELLED | PAST_DUE
+  startDate  DateTime @default(now())
+  endDate    DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([plan])
+}
+
+model UsageLog {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type      String   // CLASS_CREATED | VOICE_COMMAND | REMINDER_SENT | etc.
+  count     Int      @default(0)
+  month     Int
+  year      Int
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, type, month, year])
+  @@index([accountId])
+  @@index([year, month])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  actorId   String   // User id who performed the action
+  action    String   // CLASS_CREATED | CLASS_CANCELLED | STUDENT_ADDED | REMINDER_SENT | SUBSCRIPTION_UPDATED | ACCOUNT_CREATED | etc.
+  metadata  String?  // JSON string for flexible payload
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+  @@index([actorId])
+  @@index([createdAt])
 }

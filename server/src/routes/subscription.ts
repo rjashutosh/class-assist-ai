@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware, requireRoles } from "../middleware/auth.js";
-import { canCreateClass } from "../services/subscription.js";
+import { canCreateClass, getEffectivePlan } from "../services/subscriptionService.js";
 
 const router = Router();
 
@@ -11,11 +11,12 @@ router.get("/limits", authMiddleware, requireRoles("TEACHER", "MANAGER"), async 
     return;
   }
   const check = await canCreateClass(user.accountId);
+  const plan = await getEffectivePlan(user.accountId);
   res.json({
     canCreateClass: check.allowed,
     limit: check.limit,
     count: check.count,
-    tier: user.account?.subscriptionTier ?? "BASIC",
+    tier: plan,
   });
 });
 

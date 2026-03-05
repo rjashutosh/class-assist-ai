@@ -10,6 +10,7 @@ import classesRoutes from "./routes/classes.js";
 import adminRoutes from "./routes/admin.js";
 import notificationsRoutes from "./routes/notifications.js";
 import subscriptionRoutes from "./routes/subscription.js";
+import voiceRoutes from "./voice/VoiceController.js";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -25,6 +26,7 @@ app.use("/api/classes", classesRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/voice", voiceRoutes);
 
 app.get("/api/me", authMiddleware, (req, res) => {
   const user = (req as any).user;

@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import { VoiceModeProvider } from "./context/VoiceModeContext";
 
 function RoleRedirect() {
   const { user } = useAuth();
@@ -54,8 +56,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <VoiceModeProvider>
+          <AppRoutes />
+        </VoiceModeProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

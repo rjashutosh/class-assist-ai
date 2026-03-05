@@ -39,6 +39,15 @@ export default function Calendar() {
     return "bg-red-500/30 border-red-500/50 text-red-300";
   };
 
+  const formatTime = (dateTime: string) =>
+    new Date(dateTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
+
+  const eventForClass = (c: Class) => ({
+    title: `Class with ${c.student.name}`,
+    start: c.dateTime,
+    meetingLink: c.meetingLink,
+  });
+
   const monthName = start.toLocaleString("default", { month: "long", year: "numeric" });
   const daysInMonth = new Date(month.year, month.month + 1, 0).getDate();
   const firstDay = new Date(month.year, month.month, 1).getDay();
@@ -99,16 +108,23 @@ export default function Calendar() {
                 <span className="text-slate-500 text-xs font-medium">{slot.day}</span>
               )}
               {slot.classes.length > 0 &&
-                slot.classes.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelected(c)}
-                    className={`text-left text-xs p-1.5 rounded border truncate ${getStatusColor(c.status)}`}
-                    title={`${c.subject} with ${c.student.name} at ${new Date(c.dateTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })}`}
-                  >
-                    {c.subject} · {c.student.name} · {new Date(c.dateTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })}
-                  </button>
-                ))}
+                slot.classes.map((c) => {
+                  const event = eventForClass(c);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelected(c)}
+                      className={`text-left text-xs p-1.5 rounded border ${getStatusColor(c.status)}`}
+                      title={event.title}
+                    >
+                      <span className="block font-medium truncate">{event.title}</span>
+                      <span className="block text-[10px] opacity-90">{formatTime(event.start)}</span>
+                      {event.meetingLink && (
+                        <span className="block text-[10px] opacity-90">Zoom Link</span>
+                      )}
+                    </button>
+                  );
+                })}
             </div>
           ))}
         </div>
@@ -130,23 +146,33 @@ export default function Calendar() {
               onClick={(e) => e.stopPropagation()}
               className="glass-strong rounded-2xl p-6 w-full max-w-md border border-white/10"
             >
-              <h3 className="text-lg font-semibold text-white mb-2">{selected.subject}</h3>
-              <p className="text-slate-400 text-sm">Student: {selected.student.name}</p>
-              <p className="text-slate-400 text-sm">Date: {new Date(selected.dateTime).toLocaleString()}</p>
-              <p className="text-slate-400 text-sm">Status: {selected.status}</p>
-              {selected.meetingLink && (
-                <a
-                  href={selected.meetingLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-neon-cyan text-sm mt-2 inline-block"
-                >
-                  Meeting link
-                </a>
+              <h3 className="text-lg font-semibold text-white mb-4">Class Details</h3>
+              <p className="text-slate-400 text-sm mb-2">
+                <span className="text-slate-500">Student</span>
+                <span className="ml-2 text-white">{selected.student.name}</span>
+              </p>
+              <p className="text-slate-400 text-sm mb-2">
+                <span className="text-slate-500">Time</span>
+                <span className="ml-2 text-white">{new Date(selected.dateTime).toLocaleString()}</span>
+              </p>
+              {selected.meetingLink ? (
+                <p className="text-slate-400 text-sm mb-4">
+                  <span className="text-slate-500">Zoom Link</span>
+                  <a
+                    href={selected.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-2 text-neon-cyan hover:underline"
+                  >
+                    Join Zoom meeting
+                  </a>
+                </p>
+              ) : (
+                <p className="text-slate-500 text-sm mb-4">No meeting link</p>
               )}
               <button
                 onClick={() => setSelected(null)}
-                className="mt-4 w-full py-2 rounded-xl border border-white/20 text-slate-300"
+                className="mt-2 w-full py-2 rounded-xl border border-white/20 text-slate-300 hover:bg-white/5"
               >
                 Close
               </button>

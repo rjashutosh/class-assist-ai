@@ -41,7 +41,7 @@ export type CommandError =
 
 /** Success payloads per intent. API response shape preserved. */
 export type CommandSuccessData =
-  | { class: ClassWithStudent }
+  | ({ class: ClassWithStudent } & { whatsappNotification?: "sent" | "simulated" | "failed" })
   | { cancelled: string }
   | { student: Student }
   | { remindersSent: number };

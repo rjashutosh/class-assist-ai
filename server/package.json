@@ -8,17 +8,21 @@
     "start": "node dist/index.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "create-test-class": "tsx scripts/create-test-class.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "axios": "^1.13.6",
     "bcryptjs": "^2.4.3",
     "chrono-node": "^2.9.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^8.0.1",
     "openai": "^4.73.0",
+    "twilio": "^5.12.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

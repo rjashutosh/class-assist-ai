@@ -4,6 +4,9 @@ import { canCreateClass, canSendReminder } from "./subscriptionService.js";
 import { createMockNotification } from "./notificationService.js";
 import { log as auditLog, AUDIT_ACTIONS } from "./auditService.js";
 import { incrementUsage } from "./usageLogService.js";
+import { createZoomMeeting } from "./zoomService.js";
+import { sendClassInvite } from "./emailService.js";
+import { sendClassScheduledMessage } from "./whatsappService.js";
 import type { CommandError, CommandSuccessData, ExecuteContext } from "../orchestration/types.js";
 import type { ExecuteCommandBody } from "../orchestration/types.js";
 import type { ClassWithStudent } from "../orchestration/types.js";
@@ -33,13 +36,12 @@ function buildDateFilter(dateStr?: string): Record<string, unknown> {
 export async function scheduleClass(
   ctx: ExecuteContext,
   body: ExecuteCommandBody
-): Promise<{ class: ClassWithStudent }> {
+): Promise<{ class: ClassWithStudent; whatsappNotification: "sent" | "simulated" | "failed" }> {
   const check = await canCreateClass(ctx.accountId);
   if (!check.allowed) {
     throw { code: "BASIC_LIMIT_REACHED" as const, limit: check.limit, count: check.count };
   }
   const dateTime = parseDateTime(body.date, body.time) ?? new Date();
-  const meetingLink = `https://meet.demo/class-${Date.now()}`;
 
   // Create student (if needed) and class in one transaction so the new student is visible (avoids P2021 on SQLite)
   const cls = await prisma.$transaction(async (tx) => {
@@ -54,6 +56,13 @@ export async function scheduleClass(
     if (!student) {
       throw { code: "STUDENT_NAME_REQUIRED" as const, confirmationIssue: true as const };
     }
+
+    const zoomMeeting = await createZoomMeeting({
+      topic: `Class with ${student.name}`,
+      startTime: dateTime,
+      duration: 60,
+    });
+
     return tx.class.create({
       data: {
         accountId: ctx.accountId,
@@ -61,7 +70,9 @@ export async function scheduleClass(
         subject: body.subject ?? "General",
         dateTime,
         status: "UPCOMING",
-        meetingLink,
+        meetingProvider: "ZOOM",
+        meetingLink: zoomMeeting.meetingLink,
+        meetingId: zoomMeeting.meetingId,
         transcript: body.transcript ?? null,
         createdBy: ctx.userId,
       },
@@ -71,15 +82,32 @@ export async function scheduleClass(
 
   const student = cls.student;
   const inviteMessage = generateMeetingInviteText(student.name, cls.dateTime);
+  const meetingLink = cls.meetingLink ?? "";
   await createMockNotification(
     ctx.accountId,
     "MEETING_INVITE",
     student.email ?? student.phone ?? student.name,
     `${inviteMessage} Link: ${meetingLink}`
   );
+  if (student.email?.trim()) {
+    await sendClassInvite({
+      studentEmail: student.email.trim(),
+      studentName: student.name,
+      meetingLink,
+      classTime: cls.dateTime,
+    }).catch((err) => console.error("[scheduleClass] sendClassInvite failed:", err));
+  }
+
+  const whatsappNotification = await sendClassScheduledMessage(
+    student.name,
+    student.phone ?? null,
+    meetingLink,
+    cls.dateTime
+  );
+
   await auditLog({ accountId: ctx.accountId, actorId: ctx.userId, action: AUDIT_ACTIONS.CLASS_CREATED, metadata: { classId: cls.id } });
   await incrementUsage(ctx.accountId, "CLASS_CREATED");
-  return { class: cls };
+  return { class: cls, whatsappNotification };
 }
 
 export async function cancelClass(

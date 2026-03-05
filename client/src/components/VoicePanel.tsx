@@ -8,6 +8,40 @@ import ExecutionPanel from "./ExecutionPanel";
 import UpgradeModal from "./UpgradeModal";
 import { useVoiceMode } from "../context/VoiceModeContext";
 
+const MAX_PHRASE_REPEAT = 100;
+
+/**
+ * Removes consecutive duplicate phrases (up to MAX_PHRASE_REPEAT words).
+ * Complexity: O(n * L) worst case (n = word count, L = max phrase). Breaks early on first mismatch per phrase length.
+ */
+function cleanTranscript(text: string): string {
+  const words = text.split(" ").filter(Boolean);
+  const result: string[] = [];
+  let i = 0;
+  while (i < words.length) {
+    const maxLen = Math.min(MAX_PHRASE_REPEAT, result.length, words.length - i);
+    let bestL = 0;
+    for (let L = 1; L <= maxLen; L++) {
+      let match = true;
+      for (let j = 0; j < L; j++) {
+        if (result[result.length - L + j] !== words[i + j]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) bestL = L;
+      // do not break on mismatch: e.g. "add student" + "add student" fails L=1 (student≠add) but matches L=2
+    }
+    if (bestL > 0) {
+      i += bestL;
+      continue;
+    }
+    result.push(words[i]);
+    i++;
+  }
+  return result.join(" ");
+}
+
 type Step = "idle" | "transcript" | "extracting" | "confirm" | "executing" | "done";
 
 export default function VoicePanel() {
@@ -22,11 +56,11 @@ export default function VoicePanel() {
 
   const handleResult = useCallback((text: string, isFinal: boolean) => {
     if (isFinal) {
-      setTranscript((prev) => (prev ? prev + " " + text : text));
+      setTranscript((prev) => cleanTranscript(prev ? prev + " " + text : text));
     } else {
       setTranscript((prev) => {
         const base = prev.split(" ").slice(0, -1).join(" ");
-        return base ? base + " " + text : text;
+        return cleanTranscript(base ? base + " " + text : text);
       });
     }
   }, []);
@@ -51,6 +85,7 @@ export default function VoicePanel() {
 
   const handleConfirmTranscript = async () => {
     if (!transcript.trim()) return;
+    stopMic();
     setStep("extracting");
     setError("");
     try {
